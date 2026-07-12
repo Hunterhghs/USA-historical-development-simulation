@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Veles / Fable
+.fable/
+fable.toml
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+
+# Node (if any)
+node_modules/

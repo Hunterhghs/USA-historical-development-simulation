@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>United States of America — Historical Development Simulation (1776–2025)</title>
+<meta name="description" content="Professional-grade interactive map dashboard simulating the development of the United States from the 13 colonies to modern day. State formation, city founding, territorial expansion, and economic growth in 10-year increments.">
+<meta name="author" content="H Heuristics">
+<meta name="theme-color" content="#1a1410">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — Historical-Economic Design System
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Base — warm parchment darkness */
+  --bg-deep: #1a1410;
+  --bg-panel: #1f1a15;
+  --bg-card: #28211a;
+  --bg-card-hover: #302820;
+  --border: #3a3028;
+  --border-light: #4a4038;
+  --border-gold: #5a4830;
+
+  /* Text */
+  --text-primary: #e8dcc8;
+  --text-secondary: #b8a890;
+  --text-muted: #7a6e60;
+
+  /* Accents — evolving palette */
+  --gold: #d4a840;
+  --gold-bright: #e8c860;
+  --brass: #b8963c;
+  --copper: #c07840;
+  --bronze: #a06838;
+
+  /* Era colors */
+  --era-colonial: #8b6914;
+  --era-early-republic: #a07820;
+  --era-antebellum: #b88830;
+  --era-civil-war: #c04030;
+  --era-gilded-age: #c89820;
+  --era-progressive: #a08830;
+  --era-world-wars: #687890;
+  --era-postwar: #5090b0;
+  --era-modern: #40a0c0;
+
+  /* Semantic */
+  --info-blue: #6098c0;
+  --success-green: #60a870;
+  --warning-amber: #c89840;
+  --alert-red: #c05040;
+
+  --radius: 6px;
+  --radius-sm: 4px;
+  --radius-lg: 10px;
+  --shadow-panel: 0 4px 32px rgba(0,0,0,0.55);
+  --shadow-card: 0 2px 12px rgba(0,0,0,0.35);
+  --transition: 0.25s ease;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-vintage: 'IM Fell English', Georgia, 'Times New Roman', serif;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════════════════ */
+.header {
+  height: 52px; min-height: 52px;
+  background: linear-gradient(180deg, #241e16 0%, #1f1a14 100%);
+  border-bottom: 1px solid var(--border-gold);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.4rem;
+  z-index: 1000;
+  user-select: none;
+}
+.header-left { display: flex; align-items: center; gap: 0.75rem; }
+.header-logo {
+  font-family: var(--font-display);
+  font-size: 1.15rem; font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+.header-logo span { color: var(--text-secondary); font-weight: 500; font-size: 0.8rem; margin-left: 0.35rem; }
+.header-center {
+  display: flex; align-items: center; gap: 1.2rem;
+  font-size: 0.78rem; color: var(--text-secondary);
+}
+.header-stat { display: flex; align-items: center; gap: 0.35rem; }
+.header-stat .stat-value { color: var(--gold-bright); font-weight: 700; font-size: 0.9rem; font-family: var(--font-display); }
+.header-stat .stat-label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.header-right { display: flex; align-items: center; gap: 0.6rem; }
+.header-btn {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 0.72rem; font-family: var(--font-sans);
+  transition: var(--transition);
+  display: flex; align-items: center; gap: 0.25rem;
+}
+.header-btn:hover { background: var(--bg-card-hover); border-color: var(--border-gold); color: var(--text-primary); }
+.header-btn.active { background: var(--bg-card); border-color: var(--gold); color: var(--gold); }
+.header-btn.play-btn { width: 32px; height: 28px; padding: 0; justify-content: center; font-size: 0.85rem; }
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN LAYOUT
+   ═══════════════════════════════════════════════════════════ */
+.main-container {
+  flex: 1; display: flex; overflow: hidden;
+  position: relative;
+}
+
+/* Map Area */
+.map-area {
+  flex: 1; position: relative;
+  background: #1a1612;
+}
+
+#map {
+  width: 100%; height: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDE PANEL
+   ═══════════════════════════════════════════════════════════ */
+.side-panel {
+  width: 360px; min-width: 360px;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-gold);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  z-index: 900;
+}
+.panel-section {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.panel-section:last-child { border-bottom: none; }
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 0.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Current Era Display */
+.era-display {
+  text-align: center;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(180deg, rgba(212,168,64,0.08) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border-gold);
+}
+.era-year {
+  font-family: var(--font-display);
+  font-size: 2.4rem; font-weight: 900;
+  color: var(--gold-bright);
+  line-height: 1;
+}
+.era-label {
+  font-family: var(--font-vintage);
+  font-size: 0.9rem; font-style: italic;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+.era-subtitle {
+  font-size: 0.7rem; color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+/* State List */
+.state-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0;
+  font-size: 0.75rem;
+  border-bottom: 1px solid rgba(58,48,40,0.3);
+}
+.state-item:last-child { border-bottom: none; }
+.state-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.state-name { color: var(--text-primary); flex: 1; }
+.state-year { color: var(--text-muted); font-size: 0.68rem; }
+
+/* City List */
+.city-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.73rem;
+  border-bottom: 1px solid rgba(58,48,40,0.3);
+}
+.city-item:last-child { border-bottom: none; }
+.city-marker {
+  width: 6px; height: 6px; border-radius: 50%;
+  border: 1.5px solid var(--copper);
+  background: transparent;
+  flex-shrink: 0;
+}
+.city-name { color: var(--text-secondary); flex: 1; }
+.city-year { color: var(--text-muted); font-size: 0.65rem; }
+
+/* Event Item */
+.event-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(58,48,40,0.3);
+}
+.event-item:last-child { border-bottom: none; }
+.event-year-badge {
+  display: inline-block;
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  color: var(--gold);
+  font-size: 0.65rem; font-weight: 600;
+  padding: 0.1rem 0.4rem; border-radius: 3px;
+  margin-bottom: 0.2rem;
+}
+.event-title { font-size: 0.78rem; color: var(--text-primary); font-weight: 500; }
+.event-desc { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem; line-height: 1.35; }
+
+/* ═══════════════════════════════════════════════════════════
+   TIMELINE BAR
+   ═══════════════════════════════════════════════════════════ */
+.timeline-bar {
+  height: 72px; min-height: 72px;
+  background: linear-gradient(0deg, #1a1410 0%, #1f1a14 100%);
+  border-top: 1px solid var(--border-gold);
+  display: flex; align-items: center;
+  padding: 0 1.4rem;
+  gap: 1rem;
+  z-index: 1000;
+  user-select: none;
+}
+.timeline-controls {
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.timeline-btn {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); width: 32px; height: 32px;
+  border-radius: 50%; cursor: pointer;
+  font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.timeline-btn:hover { background: var(--bg-card-hover); border-color: var(--border-gold); color: var(--text-primary); }
+.timeline-btn.play {
+  width: 36px; height: 36px;
+  background: var(--bg-card); border-color: var(--border-gold);
+  color: var(--gold);
+  font-size: 0.9rem;
+}
+.timeline-btn.play:hover { background: #3a3020; color: var(--gold-bright); }
+
+.timeline-track-container {
+  flex: 1; position: relative; height: 40px;
+  display: flex; align-items: center;
+}
+.timeline-track {
+  width: 100%; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+}
+.timeline-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--era-colonial), var(--gold), var(--era-modern));
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+.timeline-thumb {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 16px; height: 16px;
+  background: var(--gold-bright);
+  border: 2px solid var(--bg-deep);
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 0 8px rgba(212,168,64,0.4);
+  z-index: 10;
+  transition: left 0.1s linear;
+}
+.timeline-thumb:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.2); }
+
+.timeline-ticks {
+  position: absolute; top: -18px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+}
+.timeline-tick {
+  font-size: 0.6rem; color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0 2px;
+}
+.timeline-tick:hover { color: var(--text-secondary); }
+.timeline-tick.active { color: var(--gold); font-weight: 600; }
+.timeline-tick.milestone { color: var(--copper); }
+
+.timeline-speed {
+  display: flex; align-items: center; gap: 0.3rem;
+}
+.timeline-speed span { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
+.speed-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); padding: 0.15rem 0.35rem;
+  border-radius: 3px; cursor: pointer; font-size: 0.6rem;
+  font-family: var(--font-sans);
+}
+.speed-btn:hover { border-color: var(--border-gold); color: var(--text-secondary); }
+.speed-btn.active { border-color: var(--gold); color: var(--gold); }
+
+/* ═══════════════════════════════════════════════════════════
+   MAP OVERLAYS
+   ═══════════════════════════════════════════════════════════ */
+.map-legend {
+  position: absolute; bottom: 20px; right: 20px;
+  background: rgba(31,26,21,0.92);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  z-index: 800;
+  font-size: 0.7rem;
+  backdrop-filter: blur(8px);
+}
+.legend-title {
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+.legend-row:last-child { margin-bottom: 0; }
+.legend-swatch {
+  width: 14px; height: 10px; border-radius: 2px;
+  flex-shrink: 0;
+}
+.legend-label { color: var(--text-secondary); font-size: 0.68rem; }
+
+.map-watermark {
+  position: absolute; top: 12px; left: 12px;
+  font-family: var(--font-vintage);
+  font-size: 0.7rem; font-style: italic;
+  color: rgba(184,168,144,0.5);
+  z-index: 800;
+  pointer-events: none;
+}
+
+/* Territory pulse */
+.territory-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLTIP
+   ═══════════════════════════════════════════════════════════ */
+.map-tooltip {
+  position: absolute;
+  background: rgba(31,26,21,0.95);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.72rem;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+.map-tooltip.visible { opacity: 1; }
+.tooltip-state { color: var(--gold); font-weight: 600; font-family: var(--font-display); }
+.tooltip-detail { color: var(--text-secondary); font-size: 0.65rem; }
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════ */
+.side-panel::-webkit-scrollbar { width: 4px; }
+.side-panel::-webkit-scrollbar-track { background: transparent; }
+.side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .side-panel { width: 280px; min-width: 280px; }
+  .header-center { display: none; }
+  .header-logo { font-size: 0.95rem; }
+  .era-year { font-size: 1.8rem; }
+}
+@media (max-width: 600px) {
+  .side-panel { display: none; }
+  .timeline-bar { height: 60px; min-height: 60px; padding: 0 0.8rem; }
+  .timeline-ticks { display: none; }
+  .map-legend { bottom: 10px; right: 10px; font-size: 0.6rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeInUp 0.4s ease forwards; }
+
+/* Leaflet overrides for historical theme */
+.leaflet-container {
+  background: #1a1612;
+  font-family: var(--font-sans);
+}
+.leaflet-control-zoom a {
+  background: var(--bg-card) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--bg-card-hover) !important;
+  color: var(--text-primary) !important;
+}
+.leaflet-control-attribution {
+  background: rgba(31,26,21,0.8) !important;
+  color: var(--text-muted) !important;
+  font-size: 0.6rem !important;
+}
+.leaflet-control-attribution a { color: var(--text-secondary) !important; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ HEADER ═══ -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">UNITED STATES <span>· Historical Simulation</span></div>
+  </div>
+  <div class="header-center">
+    <div class="header-stat">
+      <span class="stat-label">States</span>
+      <span class="stat-value" id="stat-states">13</span>
+    </div>
+    <div class="header-stat">
+      <span class="stat-label">Population</span>
+      <span class="stat-value" id="stat-population">3.9M</span>
+    </div>
+    <div class="header-stat">
+      <span class="stat-label">Major Cities</span>
+      <span class="stat-value" id="stat-cities">5</span>
+    </div>
+    <div class="header-stat">
+      <span class="stat-label">Land Area</span>
+      <span class="stat-value" id="stat-area">0.89M mi²</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="header-btn" onclick="resetView()" title="Reset map view">⟲ Reset</button>
+    <button class="header-btn" onclick="toggleTerritories()" id="btn-territories" title="Show territorial acquisitions">🗺 Territories</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════ MAIN ═══ -->
+<div class="main-container">
+  <!-- MAP -->
+  <div class="map-area" id="map-area">
+    <div id="map"></div>
+    <div class="map-watermark">H Heuristics · Cartographic Division</div>
+    <div class="map-legend" id="map-legend">
+      <div class="legend-title">Acquisition Era</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#8b6914;"></span><span class="legend-label">Original Colonies (1787–1790)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#a07820;"></span><span class="legend-label">Early Expansion (1791–1820)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#b88830;"></span><span class="legend-label">Antebellum (1821–1860)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#c04030;"></span><span class="legend-label">Civil War Era (1861–1865)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#c89820;"></span><span class="legend-label">Gilded Age (1866–1900)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#a08830;"></span><span class="legend-label">Progressive Era (1901–1940)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#687890;"></span><span class="legend-label">WWII & Cold War (1941–1990)</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#40a0c0;"></span><span class="legend-label">Modern Era (1991–2025)</span></div>
+    </div>
+    <div class="map-tooltip" id="map-tooltip"></div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <aside class="side-panel" id="side-panel">
+    <!-- Current Era -->
+    <div class="era-display" id="era-display">
+      <div class="era-year" id="era-year">1776</div>
+      <div class="era-label" id="era-label">The Founding Era</div>
+      <div class="era-subtitle" id="era-subtitle">Declaration of Independence · Revolutionary War</div>
+    </div>
+
+    <!-- Recent States -->
+    <div class="panel-section">
+      <div class="panel-title">States in the Union</div>
+      <div id="states-list"><div style="color:var(--text-muted);font-size:0.72rem;">Loading state data…</div></div>
+    </div>
+
+    <!-- Recent Cities -->
+    <div class="panel-section">
+      <div class="panel-title">Cities Founded</div>
+      <div id="cities-list"><div style="color:var(--text-muted);font-size:0.72rem;">Loading city data…</div></div>
+    </div>
+
+    <!-- Historical Events -->
+    <div class="panel-section">
+      <div class="panel-title">Notable Events</div>
+      <div id="events-list"><div style="color:var(--text-muted);font-size:0.72rem;">Loading events…</div></div>
+    </div>
+  </aside>
+</div>
+
+<!-- ═══════════════════════════════════════════════ TIMELINE ═══ -->
+<div class="timeline-bar">
+  <div class="timeline-controls">
+    <button class="timeline-btn" onclick="stepBackward()" title="Step back 10 years">◀</button>
+    <button class="timeline-btn play" id="btn-play" onclick="togglePlay()" title="Play/pause animation">▶</button>
+    <button class="timeline-btn" onclick="stepForward()" title="Step forward 10 years">▶</button>
+    <button class="timeline-btn" onclick="goToStart()" title="Jump to 1776">⟲◀</button>
+    <button class="timeline-btn" onclick="goToEnd()" title="Jump to 2025">▶⟲</button>
+  </div>
+  <div class="timeline-track-container">
+    <div class="timeline-ticks" id="timeline-ticks"></div>
+    <div class="timeline-track" id="timeline-track">
+      <div class="timeline-progress" id="timeline-progress" style="width:0%"></div>
+      <div class="timeline-thumb" id="timeline-thumb" style="left:0%"></div>
+    </div>
+  </div>
+  <div class="timeline-speed">
+    <span>Speed</span>
+    <button class="speed-btn" data-speed="500" onclick="setSpeed(500)">0.5×</button>
+    <button class="speed-btn active" data-speed="250" onclick="setSpeed(250)">1×</button>
+    <button class="speed-btn" data-speed="120" onclick="setSpeed(120)">2×</button>
+    <button class="speed-btn" data-speed="60" onclick="setSpeed(60)">4×</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ SCRIPTS ═══ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   DATA — Comprehensive US Historical Data
+   ═══════════════════════════════════════════════════════════ */
+
+// State data: name, abbr, admissionYear, capital, capitalLat, capitalLng, region, acquisition
+const STATE_DATA = [
+  // === Original 13 Colonies (ratified Constitution) ===
+  { name:"Delaware", abbr:"DE", admissionYear:1787, capital:"Dover", capitalLat:39.1582, capitalLng:-75.5244, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Pennsylvania", abbr:"PA", admissionYear:1787, capital:"Harrisburg", capitalLat:40.2648, capitalLng:-76.8836, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"New Jersey", abbr:"NJ", admissionYear:1787, capital:"Trenton", capitalLat:40.2206, capitalLng:-74.7691, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Georgia", abbr:"GA", admissionYear:1788, capital:"Atlanta", capitalLat:33.7490, capitalLng:-84.3880, region:"South", acquisition:"Original Colonies" },
+  { name:"Connecticut", abbr:"CT", admissionYear:1788, capital:"Hartford", capitalLat:41.7658, capitalLng:-72.6734, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Massachusetts", abbr:"MA", admissionYear:1788, capital:"Boston", capitalLat:42.3601, capitalLng:-71.0589, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Maryland", abbr:"MD", admissionYear:1788, capital:"Annapolis", capitalLat:38.9784, capitalLng:-76.4922, region:"South", acquisition:"Original Colonies" },
+  { name:"South Carolina", abbr:"SC", admissionYear:1788, capital:"Columbia", capitalLat:34.0007, capitalLng:-81.0348, region:"South", acquisition:"Original Colonies" },
+  { name:"New Hampshire", abbr:"NH", admissionYear:1788, capital:"Concord", capitalLat:43.2081, capitalLng:-71.5376, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Virginia", abbr:"VA", admissionYear:1788, capital:"Richmond", capitalLat:37.5407, capitalLng:-77.4360, region:"South", acquisition:"Original Colonies" },
+  { name:"New York", abbr:"NY", admissionYear:1788, capital:"Albany", capitalLat:42.6526, capitalLng:-73.7562, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"North Carolina", abbr:"NC", admissionYear:1789, capital:"Raleigh", capitalLat:35.7796, capitalLng:-78.6382, region:"South", acquisition:"Original Colonies" },
+  { name:"Rhode Island", abbr:"RI", admissionYear:1790, capital:"Providence", capitalLat:41.8240, capitalLng:-71.4128, region:"Northeast", acquisition:"Original Colonies" },
+
+  // === Early Expansion ===
+  { name:"Vermont", abbr:"VT", admissionYear:1791, capital:"Montpelier", capitalLat:44.2601, capitalLng:-72.5754, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Kentucky", abbr:"KY", admissionYear:1792, capital:"Frankfort", capitalLat:38.2009, capitalLng:-84.8733, region:"South", acquisition:"Original Colonies" },
+  { name:"Tennessee", abbr:"TN", admissionYear:1796, capital:"Nashville", capitalLat:36.1627, capitalLng:-86.7816, region:"South", acquisition:"Original Colonies" },
+  { name:"Ohio", abbr:"OH", admissionYear:1803, capital:"Columbus", capitalLat:39.9612, capitalLng:-82.9988, region:"Midwest", acquisition:"Northwest Territory" },
+  { name:"Louisiana", abbr:"LA", admissionYear:1812, capital:"Baton Rouge", capitalLat:30.4515, capitalLng:-91.1871, region:"South", acquisition:"Louisiana Purchase" },
+  { name:"Indiana", abbr:"IN", admissionYear:1816, capital:"Indianapolis", capitalLat:39.7684, capitalLng:-86.1581, region:"Midwest", acquisition:"Northwest Territory" },
+  { name:"Mississippi", abbr:"MS", admissionYear:1817, capital:"Jackson", capitalLat:32.2988, capitalLng:-90.1848, region:"South", acquisition:"Original Colonies" },
+  { name:"Illinois", abbr:"IL", admissionYear:1818, capital:"Springfield", capitalLat:39.7817, capitalLng:-89.6501, region:"Midwest", acquisition:"Northwest Territory" },
+  { name:"Alabama", abbr:"AL", admissionYear:1819, capital:"Montgomery", capitalLat:32.3792, capitalLng:-86.3077, region:"South", acquisition:"Original Colonies" },
+  { name:"Maine", abbr:"ME", admissionYear:1820, capital:"Augusta", capitalLat:44.3106, capitalLng:-69.7795, region:"Northeast", acquisition:"Original Colonies" },
+  { name:"Missouri", abbr:"MO", admissionYear:1821, capital:"Jefferson City", capitalLat:38.5767, capitalLng:-92.1735, region:"Midwest", acquisition:"Louisiana Purchase" },
+
+  // === Antebellum Expansion ===
+  { name:"Arkansas", abbr:"AR", admissionYear:1836, capital:"Little Rock", capitalLat:34.7465, capitalLng:-92.2896, region:"South", acquisition:"Louisiana Purchase" },
+  { name:"Michigan", abbr:"MI", admissionYear:1837, capital:"Lansing", capitalLat:42.7325, capitalLng:-84.5555, region:"Midwest", acquisition:"Northwest Territory" },
+  { name:"Florida", abbr:"FL", admissionYear:1845, capital:"Tallahassee", capitalLat:30.4383, capitalLng:-84.2807, region:"South", acquisition:"Adams-Onís Treaty" },
+  { name:"Texas", abbr:"TX", admissionYear:1845, capital:"Austin", capitalLat:30.2672, capitalLng:-97.7431, region:"South", acquisition:"Texas Annexation" },
+  { name:"Iowa", abbr:"IA", admissionYear:1846, capital:"Des Moines", capitalLat:41.5868, capitalLng:-93.6250, region:"Midwest", acquisition:"Louisiana Purchase" },
+  { name:"Wisconsin", abbr:"WI", admissionYear:1848, capital:"Madison", capitalLat:43.0731, capitalLng:-89.4012, region:"Midwest", acquisition:"Northwest Territory" },
+  { name:"California", abbr:"CA", admissionYear:1850, capital:"Sacramento", capitalLat:38.5816, capitalLng:-121.4944, region:"West", acquisition:"Mexican Cession" },
+  { name:"Minnesota", abbr:"MN", admissionYear:1858, capital:"St. Paul", capitalLat:44.9537, capitalLng:-93.0900, region:"Midwest", acquisition:"Louisiana Purchase" },
+  { name:"Oregon", abbr:"OR", admissionYear:1859, capital:"Salem", capitalLat:44.9429, capitalLng:-123.0351, region:"West", acquisition:"Oregon Territory" },
+  { name:"Kansas", abbr:"KS", admissionYear:1861, capital:"Topeka", capitalLat:39.0473, capitalLng:-95.6752, region:"Midwest", acquisition:"Louisiana Purchase" },
+
+  // === Civil War Era ===
+  { name:"West Virginia", abbr:"WV", admissionYear:1863, capital:"Charleston", capitalLat:38.3498, capitalLng:-81.6326, region:"South", acquisition:"Original Colonies" },
+  { name:"Nevada", abbr:"NV", admissionYear:1864, capital:"Carson City", capitalLat:39.1638, capitalLng:-119.7674, region:"West", acquisition:"Mexican Cession" },
+
+  // === Gilded Age ===
+  { name:"Nebraska", abbr:"NE", admissionYear:1867, capital:"Lincoln", capitalLat:40.8136, capitalLng:-96.7026, region:"Midwest", acquisition:"Louisiana Purchase" },
+  { name:"Colorado", abbr:"CO", admissionYear:1876, capital:"Denver", capitalLat:39.7392, capitalLng:-104.9903, region:"West", acquisition:"Louisiana Purchase" },
+  { name:"North Dakota", abbr:"ND", admissionYear:1889, capital:"Bismarck", capitalLat:46.8083, capitalLng:-100.7837, region:"Midwest", acquisition:"Louisiana Purchase" },
+  { name:"South Dakota", abbr:"SD", admissionYear:1889, capital:"Pierre", capitalLat:44.3683, capitalLng:-100.3510, region:"Midwest", acquisition:"Louisiana Purchase" },
+  { name:"Montana", abbr:"MT", admissionYear:1889, capital:"Helena", capitalLat:46.5891, capitalLng:-112.0391, region:"West", acquisition:"Louisiana Purchase" },
+  { name:"Washington", abbr:"WA", admissionYear:1889, capital:"Olympia", capitalLat:47.0379, capitalLng:-122.9007, region:"West", acquisition:"Oregon Territory" },
+  { name:"Idaho", abbr:"ID", admissionYear:1890, capital:"Boise", capitalLat:43.6150, capitalLng:-116.2023, region:"West", acquisition:"Oregon Territory" },
+  { name:"Wyoming", abbr:"WY", admissionYear:1890, capital:"Cheyenne", capitalLat:41.1400, capitalLng:-104.8202, region:"West", acquisition:"Louisiana Purchase" },
+  { name:"Utah", abbr:"UT", admissionYear:1896, capital:"Salt Lake City", capitalLat:40.7608, capitalLng:-111.8910, region:"West", acquisition:"Mexican Cession" },
+
+  // === Progressive Era ===
+  { name:"Oklahoma", abbr:"OK", admissionYear:1907, capital:"Oklahoma City", capitalLat:35.4676, capitalLng:-97.5164, region:"South", acquisition:"Louisiana Purchase" },
+  { name:"New Mexico", abbr:"NM", admissionYear:1912, capital:"Santa Fe", capitalLat:35.6870, capitalLng:-105.9378, region:"West", acquisition:"Mexican Cession" },
+  { name:"Arizona", abbr:"AZ", admissionYear:1912, capital:"Phoenix", capitalLat:33.4484, capitalLng:-112.0740, region:"West", acquisition:"Mexican Cession" },
+
+  // === Modern Era ===
+  { name:"Alaska", abbr:"AK", admissionYear:1959, capital:"Juneau", capitalLat:58.3019, capitalLng:-134.4197, region:"West", acquisition:"Alaska Purchase" },
+  { name:"Hawaii", abbr:"HI", admissionYear:1959, capital:"Honolulu", capitalLat:21.3069, capitalLng:-157.8583, region:"West", acquisition:"Hawaii Annexation" }
+];
+
+// City data: name, state, foundedYear, lat, lng, pop2020 (millions), significance
+const CITY_DATA = [
+  { name:"Boston", state:"MA", foundedYear:1630, lat:42.3601, lng:-71.0589, pop2020:0.675, significance:"Major colonial port; cradle of the American Revolution" },
+  { name:"New York City", state:"NY", foundedYear:1624, lat:40.7128, lng:-74.0060, pop2020:8.804, significance:"Largest US city; global financial capital" },
+  { name:"Philadelphia", state:"PA", foundedYear:1682, lat:39.9526, lng:-75.1652, pop2020:1.604, significance:"First capital; birthplace of American democracy" },
+  { name:"Charleston", state:"SC", foundedYear:1670, lat:32.7765, lng:-79.9311, pop2020:0.150, significance:"Major colonial-era southern port" },
+  { name:"Baltimore", state:"MD", foundedYear:1729, lat:39.2904, lng:-76.6122, pop2020:0.586, significance:"Major mid-Atlantic port and industrial center" },
+  { name:"New Orleans", state:"LA", foundedYear:1718, lat:29.9511, lng:-90.0715, pop2020:0.384, significance:"Critical Mississippi River port; cultural crossroads" },
+  { name:"Washington DC", state:"DC", foundedYear:1790, lat:38.9072, lng:-77.0369, pop2020:0.690, significance:"National capital; seat of federal government" },
+  { name:"Cincinnati", state:"OH", foundedYear:1788, lat:39.1031, lng:-84.5120, pop2020:0.309, significance:"First major inland city; gateway to the West" },
+  { name:"Chicago", state:"IL", foundedYear:1833, lat:41.8781, lng:-87.6298, pop2020:2.746, significance:"Railroad hub; industrial powerhouse of the Midwest" },
+  { name:"Detroit", state:"MI", foundedYear:1701, lat:42.3314, lng:-83.0458, pop2020:0.639, significance:"Automotive capital; Great Lakes industrial center" },
+  { name:"St. Louis", state:"MO", foundedYear:1764, lat:38.6270, lng:-90.1994, pop2020:0.301, significance:"Gateway to the West; Mississippi River hub" },
+  { name:"San Francisco", state:"CA", foundedYear:1776, lat:37.7749, lng:-122.4194, pop2020:0.874, significance:"Gold Rush boomtown; Pacific gateway" },
+  { name:"Pittsburgh", state:"PA", foundedYear:1758, lat:40.4406, lng:-79.9959, pop2020:0.303, significance:"Steel capital; industrial powerhouse" },
+  { name:"Savannah", state:"GA", foundedYear:1733, lat:32.0809, lng:-81.0912, pop2020:0.148, significance:"First planned city in the colonies" },
+  { name:"Richmond", state:"VA", foundedYear:1737, lat:37.5407, lng:-77.4360, pop2020:0.227, significance:"Capital of the Confederacy; tobacco hub" },
+  { name:"Buffalo", state:"NY", foundedYear:1801, lat:42.8864, lng:-78.8784, pop2020:0.278, significance:"Erie Canal terminus; Great Lakes port" },
+  { name:"Cleveland", state:"OH", foundedYear:1796, lat:41.4993, lng:-81.6944, pop2020:0.373, significance:"Great Lakes industrial and shipping center" },
+  { name:"Louisville", state:"KY", foundedYear:1778, lat:38.2527, lng:-85.7585, pop2020:0.633, significance:"Ohio River port; gateway to the frontier" },
+  { name:"Atlanta", state:"GA", foundedYear:1837, lat:33.7490, lng:-84.3880, pop2020:0.499, significance:"Railroad terminus; postwar commercial hub of the New South" },
+  { name:"Denver", state:"CO", foundedYear:1858, lat:39.7392, lng:-104.9903, pop2020:0.716, significance:"Mining boomtown; Rocky Mountain metropolis" },
+  { name:"Seattle", state:"WA", foundedYear:1851, lat:47.6062, lng:-122.3321, pop2020:0.737, significance:"Pacific Northwest gateway; timber and tech hub" },
+  { name:"Portland", state:"OR", foundedYear:1845, lat:45.5152, lng:-122.6784, pop2020:0.652, significance:"Pacific Northwest trade and lumber center" },
+  { name:"Los Angeles", state:"CA", foundedYear:1781, lat:34.0522, lng:-118.2437, pop2020:3.899, significance:"Second-largest US city; entertainment and trade capital" },
+  { name:"Dallas", state:"TX", foundedYear:1841, lat:32.7767, lng:-96.7970, pop2020:1.304, significance:"Texas commercial and oil hub" },
+  { name:"Houston", state:"TX", foundedYear:1836, lat:29.7604, lng:-95.3698, pop2020:2.305, significance:"Energy capital; space exploration hub" },
+  { name:"Miami", state:"FL", foundedYear:1896, lat:25.7617, lng:-80.1918, pop2020:0.442, significance:"Gateway to Latin America; global tourism hub" },
+  { name:"Phoenix", state:"AZ", foundedYear:1867, lat:33.4484, lng:-112.0740, pop2020:1.608, significance:"Sun Belt metropolis; fifth-largest US city" },
+  { name:"Salt Lake City", state:"UT", foundedYear:1847, lat:40.7608, lng:-111.8910, pop2020:0.200, significance:"Mormon pioneer settlement; intermountain hub" },
+  { name:"Minneapolis", state:"MN", foundedYear:1856, lat:44.9778, lng:-93.2650, pop2020:0.430, significance:"Flour milling capital; Twin Cities hub" },
+  { name:"Kansas City", state:"MO", foundedYear:1838, lat:39.0997, lng:-94.5786, pop2020:0.508, significance:"Stockyards and railroad hub" },
+  { name:"Omaha", state:"NE", foundedYear:1854, lat:41.2565, lng:-95.9345, pop2020:0.486, significance:"Union Pacific Railroad headquarters; meatpacking" },
+  { name:"San Antonio", state:"TX", foundedYear:1718, lat:29.4241, lng:-98.4936, pop2020:1.435, significance:"Spanish mission settlement; Alamo site" },
+  { name:"Honolulu", state:"HI", foundedYear:1800, lat:21.3069, lng:-157.8583, pop2020:0.346, significance:"Pacific crossroads; Hawaiian Kingdom capital" },
+  { name:"Anchorage", state:"AK", foundedYear:1914, lat:61.2181, lng:-149.9003, pop2020:0.291, significance:"Alaska Railroad construction camp; largest Alaska city" },
+  { name:"Las Vegas", state:"NV", foundedYear:1905, lat:36.1716, lng:-115.1391, pop2020:0.642, significance:"Railroad stop turned global entertainment capital" },
+  { name:"Nashville", state:"TN", foundedYear:1779, lat:36.1627, lng:-86.7816, pop2020:0.689, significance:"Frontier fort; music and publishing capital" },
+  { name:"Austin", state:"TX", foundedYear:1839, lat:30.2672, lng:-97.7431, pop2020:0.962, significance:"Texas capital; tech and cultural hub" },
+  { name:"Charlotte", state:"NC", foundedYear:1768, lat:35.2271, lng:-80.8431, pop2020:0.875, significance:"Gold rush origins; banking capital of the South" },
+  { name:"San Diego", state:"CA", foundedYear:1769, lat:32.7157, lng:-117.1611, pop2020:1.387, significance:"First California mission; major naval base" },
+  { name:"Indianapolis", state:"IN", foundedYear:1820, lat:39.7684, lng:-86.1581, pop2020:0.888, significance:"Planned state capital; Crossroads of America" },
+];
+
+// Territorial acquisitions
+const TERRITORY_DATA = [
+  { name:"Original Thirteen Colonies", year:1783, description:"Treaty of Paris — Britain recognizes US sovereignty over territory east of the Mississippi (excluding Florida)", color:"#8b6914", bounds:null },
+  { name:"Louisiana Purchase", year:1803, description:"$15M purchase from France — 828,000 mi² doubling US territory", color:"#b8963c", bounds:[[49,-104],[29,-89]] },
+  { name:"Adams-Onís Treaty (Florida)", year:1819, description:"Spain cedes Florida to the US; western boundary defined", color:"#c07840", bounds:[[31,-87.5],[24.5,-80]] },
+  { name:"Texas Annexation", year:1845, description:"Republic of Texas joins the Union as the 28th state", color:"#c89820", bounds:[[36.5,-106.5],[25.8,-93.5]] },
+  { name:"Oregon Territory", year:1846, description:"Treaty with Britain establishes 49th parallel boundary", color:"#a08830", bounds:[[49,-124.5],[42,-116.5]] },
+  { name:"Mexican Cession", year:1848, description:"Treaty of Guadalupe Hidalgo — 525,000 mi² from Mexico for $15M", color:"#d4a840", bounds:[[42,-124],[31,-105]] },
+  { name:"Gadsden Purchase", year:1853, description:"$10M purchase from Mexico for southern Arizona/New Mexico railroad route", color:"#c89840", bounds:[[33,-115],[31,-108.5]] },
+  { name:"Alaska Purchase", year:1867, description:"$7.2M purchase from Russia — 'Seward's Folly'", color:"#687890", bounds:[[71.5,-168],[51,-130]] },
+  { name:"Hawaii Annexation", year:1898, description:"Republic of Hawaii annexed as US territory", color:"#40a0c0", bounds:[[22.5,-160.5],[18.5,-154.5]] },
+];
+
+// Population by decade (US Census + estimates, in millions)
+const POPULATION_DATA = {
+  1770: 2.15, 1780: 2.78, 1790: 3.93, 1800: 5.31, 1810: 7.24,
+  1820: 9.64, 1830: 12.87, 1840: 17.07, 1850: 23.19, 1860: 31.44,
+  1870: 38.56, 1880: 50.19, 1890: 62.98, 1900: 76.21, 1910: 92.23,
+  1920: 106.02, 1930: 123.20, 1940: 132.16, 1950: 151.33, 1960: 179.32,
+  1970: 203.30, 1980: 226.54, 1990: 248.71, 2000: 281.42, 2010: 308.75,
+  2020: 331.45, 2025: 340.00
+};
+
+// Land area by decade (millions of sq miles, approximate as territories acquired)
+const AREA_DATA = {
+  1770: 0.89, 1780: 0.89, 1790: 0.89, 1800: 0.89, 1810: 1.68,  // +Louisiana
+  1820: 1.75, 1830: 1.75, 1840: 1.75, 1850: 2.99, 1860: 3.02,  // +Texas, Oregon, Mexican Cession, Gadsden
+  1870: 3.57, 1880: 3.57, 1890: 3.57, 1900: 3.62, 1910: 3.62,  // +Alaska, +Hawaii
+  1920: 3.62, 1930: 3.62, 1940: 3.62, 1950: 3.62, 1960: 3.62,
+  1970: 3.62, 1980: 3.62, 1990: 3.62, 2000: 3.62, 2010: 3.62,
+  2020: 3.62, 2025: 3.62
+};
+
+// Major historical events
+const HISTORICAL_EVENTS = [
+  { year:1770, title:"Boston Massacre", desc:"British soldiers fire on colonists, fueling revolutionary sentiment", category:"Revolution" },
+  { year:1773, title:"Boston Tea Party", desc:"Colonists destroy British tea in protest of taxation without representation", category:"Revolution" },
+  { year:1775, title:"Revolutionary War Begins", desc:"Battles of Lexington and Concord — armed rebellion against British rule", category:"Revolution" },
+  { year:1776, title:"Declaration of Independence", desc:"Thirteen colonies declare independence from Great Britain, July 4", category:"Founding" },
+  { year:1781, title:"Articles of Confederation", desc:"First governing document ratified; victory at Yorktown", category:"Founding" },
+  { year:1783, title:"Treaty of Paris", desc:"Britain formally recognizes United States independence", category:"Founding" },
+  { year:1787, title:"Constitutional Convention", desc:"US Constitution drafted in Philadelphia; Delaware first to ratify", category:"Founding" },
+  { year:1789, title:"Washington Inaugurated", desc:"George Washington becomes first President; Constitution takes effect", category:"Founding" },
+  { year:1791, title:"Bill of Rights Ratified", desc:"First ten amendments guarantee individual liberties", category:"Founding" },
+  { year:1803, title:"Louisiana Purchase", desc:"US acquires 828,000 mi² from France for $15M — territory doubles", category:"Expansion" },
+  { year:1804, title:"Lewis & Clark Expedition", desc:"Corps of Discovery explores the Louisiana Territory to the Pacific", category:"Expansion" },
+  { year:1812, title:"War of 1812", desc:"US vs. Britain over maritime rights; White House burned; 'Star-Spangled Banner' written", category:"War" },
+  { year:1820, title:"Missouri Compromise", desc:"Admits Missouri as slave state, Maine as free; establishes 36°30′ line", category:"Slavery" },
+  { year:1823, title:"Monroe Doctrine", desc:"US declares Western Hemisphere closed to European colonization", category:"Foreign Policy" },
+  { year:1830, title:"Indian Removal Act", desc:"Forced relocation of Native Americans; Trail of Tears follows", category:"Expansion" },
+  { year:1846, title:"Mexican-American War", desc:"US acquires vast southwestern territories after two-year conflict", category:"War" },
+  { year:1848, title:"California Gold Rush", desc:"Discovery at Sutter's Mill triggers mass migration westward", category:"Expansion" },
+  { year:1854, title:"Kansas-Nebraska Act", desc:"Repeals Missouri Compromise; 'Bleeding Kansas' violence erupts", category:"Slavery" },
+  { year:1861, title:"Civil War Begins", desc:"Confederate forces fire on Fort Sumter; four-year conflict begins", category:"War" },
+  { year:1863, title:"Emancipation Proclamation", desc:"Lincoln declares slaves in rebel states free", category:"Slavery" },
+  { year:1865, title:"Civil War Ends", desc:"Lee surrenders at Appomattox; Lincoln assassinated; 13th Amendment abolishes slavery", category:"War" },
+  { year:1869, title:"Transcontinental Railroad", desc:"Golden Spike at Promontory Summit unites East and West by rail", category:"Industry" },
+  { year:1876, title:"Centennial; Little Bighorn", desc:"US turns 100; Custer's defeat marks last major Native American resistance", category:"Expansion" },
+  { year:1886, title:"Statue of Liberty Dedicated", desc:"Gift from France; becomes symbol of immigration and freedom", category:"Society" },
+  { year:1890, title:"Frontier Declared Closed", desc:"Census Bureau announces end of the American frontier", category:"Expansion" },
+  { year:1898, title:"Spanish-American War", desc:"US emerges as global power; acquires Puerto Rico, Guam, Philippines", category:"War" },
+  { year:1903, title:"Wright Brothers First Flight", desc:"Powered flight at Kitty Hawk launches aviation age", category:"Innovation" },
+  { year:1908, title:"Model T Introduced", desc:"Ford democratizes automobile; assembly line revolution follows", category:"Industry" },
+  { year:1913, title:"Federal Reserve Created", desc:"Central banking system established; 16th & 17th Amendments", category:"Economy" },
+  { year:1917, title:"US Enters World War I", desc:"American Expeditionary Forces tip balance on Western Front", category:"War" },
+  { year:1920, title:"19th Amendment Ratified", desc:"Women gain the right to vote nationwide", category:"Society" },
+  { year:1929, title:"Stock Market Crash", desc:"Black Tuesday triggers the Great Depression", category:"Economy" },
+  { year:1933, title:"New Deal Begins", desc:"FDR launches massive economic recovery program", category:"Economy" },
+  { year:1941, title:"Pearl Harbor / WWII Entry", desc:"Japanese attack brings US into World War II", category:"War" },
+  { year:1945, title:"WWII Ends; Atomic Age", desc:"Germany surrenders; atomic bombs dropped on Japan; United Nations founded", category:"War" },
+  { year:1947, title:"Marshall Plan & Cold War", desc:"US rebuilds Europe; Truman Doctrine begins Cold War with USSR", category:"Foreign Policy" },
+  { year:1954, title:"Brown v. Board of Education", desc:"Supreme Court ends school segregation; Civil Rights Movement accelerates", category:"Society" },
+  { year:1957, title:"Space Race Begins", desc:"Sputnik launches; US responds with NASA and science education push", category:"Innovation" },
+  { year:1963, title:"JFK Assassination", desc:"President Kennedy killed in Dallas; nation mourns", category:"Politics" },
+  { year:1964, title:"Civil Rights Act", desc:"Landmark legislation outlaws discrimination based on race, color, religion, sex, or national origin", category:"Society" },
+  { year:1969, title:"Moon Landing", desc:"Apollo 11 — Armstrong and Aldrin walk on the Moon", category:"Innovation" },
+  { year:1973, title:"Oil Crisis", desc:"OPEC embargo triggers energy crisis and economic stagflation", category:"Economy" },
+  { year:1980, title:"Reagan Revolution", desc:"Conservative realignment; deregulation and tax cuts reshape economy", category:"Politics" },
+  { year:1989, title:"Berlin Wall Falls", desc:"Cold War ends; US emerges as sole superpower", category:"Foreign Policy" },
+  { year:1991, title:"World Wide Web Public", desc:"Internet revolution begins; transforms global economy and society", category:"Innovation" },
+  { year:2001, title:"9/11 Attacks", desc:"Terrorist attacks reshape US foreign and domestic policy", category:"Security" },
+  { year:2008, title:"Financial Crisis", desc:"Great Recession; worst economic downturn since the Great Depression", category:"Economy" },
+  { year:2020, title:"COVID-19 Pandemic", desc:"Global pandemic transforms work, society, and public health", category:"Society" },
+  { year:2025, title:"America at 249", desc:"Nation approaching semiquincentennial; AI, space commercialization, energy transition", category:"Society" }
+];
+
+
+/* ═══════════════════════════════════════════════════════════
+   APPLICATION STATE & LOGIC
+   ═══════════════════════════════════════════════════════════ */
+
+// State
+let currentYearIndex = 0;
+let isPlaying = false;
+let playInterval = null;
+let animSpeed = 250; // ms per year
+let showTerritories = false;
+let map, geoJsonLayer, cityMarkersGroup, statePolygons = {}, cityMarkers = [];
+let territoryOverlays = [];
+let tooltipEl, currentHighlightedState = null;
+
+// Computed timeline points (1770–2025 in 10-year steps)
+const START_YEAR = 1770;
+const END_YEAR = 2025;
+const YEAR_STEP = 10;
+const TIMELINE_YEARS = [];
+for (let y = START_YEAR; y <= END_YEAR; y += YEAR_STEP) TIMELINE_YEARS.push(y);
+if (TIMELINE_YEARS[TIMELINE_YEARS.length-1] < END_YEAR) TIMELINE_YEARS.push(END_YEAR);
+
+// Get era label for a year
+function getEraLabel(year) {
+  if (year < 1783) return "The Founding Era";
+  if (year < 1800) return "The Early Republic";
+  if (year < 1820) return "Era of Good Feelings";
+  if (year < 1840) return "Jacksonian Democracy";
+  if (year < 1860) return "Antebellum & Manifest Destiny";
+  if (year < 1865) return "The Civil War";
+  if (year < 1877) return "Reconstruction";
+  if (year < 1900) return "The Gilded Age";
+  if (year < 1917) return "The Progressive Era";
+  if (year < 1929) return "The Roaring Twenties";
+  if (year < 1941) return "Great Depression & New Deal";
+  if (year < 1945) return "World War II";
+  if (year < 1960) return "Postwar Boom & Cold War";
+  if (year < 1970) return "The Sixties";
+  if (year < 1991) return "Late Cold War";
+  if (year < 2001) return "The Information Age";
+  if (year < 2020) return "The War on Terror Era";
+  return "The Modern Era";
+}
+
+function getEraSubtitle(year) {
+  if (year < 1783) return "Declaration of Independence · Revolutionary War";
+  if (year < 1800) return "Constitution Ratified · Washington & Adams Administrations";
+  if (year < 1820) return "Louisiana Purchase · War of 1812 · Westward Movement";
+  if (year < 1840) return "Trail of Tears · Railroads Begin · Texas Independence";
+  if (year < 1860) return "Mexican Cession · Gold Rush · Prelude to Civil War";
+  if (year < 1865) return "The Union Preserved · Emancipation · Lincoln";
+  if (year < 1877) return "13th, 14th, 15th Amendments · Transcontinental Railroad";
+  if (year < 1900) return "Industrialization · Immigration Wave · Closing of the Frontier";
+  if (year < 1917) return "Progressive Reforms · WWI Begins in Europe";
+  if (year < 1929) return "Jazz Age · Women's Suffrage · Economic Boom";
+  if (year < 1941) return "Stock Market Crash · Dust Bowl · New Deal";
+  if (year < 1945) return "Pearl Harbor · D-Day · Atomic Age Dawns";
+  if (year < 1960) return "Suburbanization · Civil Rights Movement · Space Race";
+  if (year < 1970) return "Vietnam · Moon Landing · Cultural Revolution";
+  if (year < 1991) return "Oil Crisis · End of Cold War · Digital Revolution Begins";
+  if (year < 2001) return "Internet Boom · Globalization · Economic Expansion";
+  if (year < 2020) return "9/11 · Financial Crisis · Tech Transformation";
+  return "Pandemic Recovery · AI Revolution · Energy Transition";
+}
+
+// Get state color based on admission year
+function getStateColor(admissionYear) {
+  if (admissionYear <= 1790) return "#8b6914";   // Original Colonies
+  if (admissionYear <= 1820) return "#a07820";   // Early Expansion
+  if (admissionYear <= 1860) return "#b88830";   // Antebellum
+  if (admissionYear <= 1865) return "#c04030";   // Civil War
+  if (admissionYear <= 1900) return "#c89820";   // Gilded Age
+  if (admissionYear <= 1940) return "#a08830";   // Progressive Era
+  if (admissionYear <= 1990) return "#687890";   // WWII & Cold War
+  return "#40a0c0";                                // Modern
+}
+
+// Format population
+function formatPop(millions) {
+  if (millions >= 1000) return (millions/1000).toFixed(2) + "B";
+  if (millions >= 1) return millions.toFixed(1) + "M";
+  return (millions*1000).toFixed(0) + "K";
+}
+
+// Format area
+function formatArea(millionSqMi) {
+  return millionSqMi.toFixed(2) + "M mi²";
+}
+
+// Round year down to nearest timeline step
+function getNearestTimelineYear(year) {
+  let nearest = TIMELINE_YEARS[0];
+  for (const ty of TIMELINE_YEARS) {
+    if (ty <= year) nearest = ty;
+    else break;
+  }
+  return nearest;
+}
+
+// Get data for display year (round down to nearest available data)
+function getClosestData(dataMap, year) {
+  const years = Object.keys(dataMap).map(Number).sort((a,b) => a-b);
+  let closest = years[0];
+  for (const y of years) {
+    if (y <= year) closest = y;
+    else break;
+  }
+  return dataMap[closest];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INITIALIZE MAP
+   ═══════════════════════════════════════════════════════════ */
+function initMap() {
+  map = L.map('map', {
+    center: [39.8, -96.5],
+    zoom: 4.2,
+    minZoom: 3,
+    maxZoom: 10,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  // Dark cartographic tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 10
+  }).addTo(map);
+
+  // Tooltip element
+  tooltipEl = document.getElementById('map-tooltip');
+
+  // Load GeoJSON
+  loadGeoJSON();
+}
+
+function loadGeoJSON() {
+  fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+    .then(r => r.json())
+    .then(geojson => {
+      buildStatePolygons(geojson);
+      buildCityMarkers();
+      buildTimelineTicks();
+      updateDisplay(1776);
+    })
+    .catch(err => {
+      console.error('Failed to load GeoJSON:', err);
+      // Fallback: Try TopoJSON source (needs topojson-client library)
+      fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+        .then(r => r.json())
+        .then(topoData => {
+          const geo = topojson.feature(topoData, topoData.objects.states);
+          buildStatePolygons(geo);
+          buildCityMarkers();
+          buildTimelineTicks();
+          updateDisplay(1776);
+        })
+        .catch(err2 => {
+          console.error('Fallback GeoJSON also failed:', err2);
+          document.getElementById('states-list').innerHTML =
+            '<div style="color:var(--alert-red);font-size:0.72rem;">Map data unavailable. Please check your connection.</div>';
+        });
+    });
+}
+
+
+
+function buildStatePolygons(geojson) {
+  // Clear existing
+  if (geoJsonLayer) map.removeLayer(geoJsonLayer);
+  statePolygons = {};
+
+  const stateMap = {};
+  STATE_DATA.forEach(s => { stateMap[s.name] = s; });
+
+  geojson.features.forEach(feature => {
+    const stateName = feature.properties.name;
+    const stateData = stateMap[stateName];
+    if (!stateData) return;
+
+    const color = getStateColor(stateData.admissionYear);
+
+    const polygon = L.geoJSON(feature, {
+      style: {
+        fillColor: color,
+        fillOpacity: 0,
+        color: color,
+        weight: 0,
+        opacity: 0
+      },
+      interactive: true
+    });
+
+    polygon.stateData = stateData;
+    polygon.stateName = stateName;
+    polygon.geoFeature = feature;
+
+    polygon.on('mouseover', function(e) {
+      showTooltip(e, stateData);
+      if (currentHighlightedState !== polygon) {
+        polygon.setStyle({
+          weight: 2,
+          opacity: 0.9,
+          fillOpacity: Math.max(polygon.options.fillOpacity || 0, 0.25)
+        });
+      }
+    });
+
+    polygon.on('mouseout', function() {
+      hideTooltip();
+      if (currentHighlightedState !== polygon) {
+        const isAdmitted = stateData.admissionYear <= getCurrentYear();
+        polygon.setStyle({
+          weight: isAdmitted ? 1 : 0,
+          opacity: isAdmitted ? 0.65 : 0,
+          fillOpacity: isAdmitted ? 0.35 : 0
+        });
+      }
+    });
+
+    polygon.on('click', function() {
+      if (currentHighlightedState) {
+        const prevData = currentHighlightedState.stateData;
+        const prevAdmitted = prevData.admissionYear <= getCurrentYear();
+        currentHighlightedState.setStyle({
+          weight: prevAdmitted ? 1 : 0,
+          opacity: prevAdmitted ? 0.65 : 0,
+          fillOpacity: prevAdmitted ? 0.35 : 0
+        });
+      }
+      currentHighlightedState = polygon;
+      polygon.setStyle({
+        weight: 2.5,
+        opacity: 1,
+        fillOpacity: 0.5
+      });
+      // Scroll to the state in the side panel
+      highlightStateInPanel(stateData);
+    });
+
+    polygon.addTo(map);
+    statePolygons[stateName] = polygon;
+  });
+
+  geoJsonLayer = true;
+}
+
+function buildCityMarkers() {
+  cityMarkersGroup = L.layerGroup().addTo(map);
+  cityMarkers = [];
+
+  CITY_DATA.forEach(city => {
+    const marker = L.circleMarker([city.lat, city.lng], {
+      radius: 0,
+      fillColor: '#d4a840',
+      color: '#b8963c',
+      weight: 1.5,
+      fillOpacity: 0,
+      opacity: 0
+    });
+
+    marker.cityData = city;
+    marker.bindTooltip(`<b>${city.name}, ${city.state}</b><br><small>Founded ${city.foundedYear}</small>`, {
+      direction: 'top',
+      offset: [0, -8],
+      className: 'city-tooltip'
+    });
+
+    marker.on('mouseover', function() {
+      marker.setStyle({ fillOpacity: 1, opacity: 1, radius: 6 });
+    });
+    marker.on('mouseout', function() {
+      if (marker.cityData.foundedYear <= getCurrentYear()) {
+        marker.setStyle({ fillOpacity: 0.8, opacity: 0.8, radius: 4 });
+      } else {
+        marker.setStyle({ fillOpacity: 0, opacity: 0, radius: 0 });
+      }
+    });
+
+    cityMarkersGroup.addLayer(marker);
+    cityMarkers.push(marker);
+  });
+}
+
+function showTooltip(e, stateData) {
+  const container = document.getElementById('map-area');
+  const rect = container.getBoundingClientRect();
+  const pos = e.originalEvent || { clientX: e.latlng ? null : 0, clientY: 0 };
+
+  if (tooltipEl) {
+    tooltipEl.innerHTML = `
+      <div class="tooltip-state">${stateData.name}</div>
+      <div class="tooltip-detail">Admitted: ${stateData.admissionYear} · ${stateData.region}</div>
+      <div class="tooltip-detail">Acquisition: ${stateData.acquisition}</div>
+    `;
+    tooltipEl.classList.add('visible');
+  }
+}
+
+function hideTooltip() {
+  if (tooltipEl) tooltipEl.classList.remove('visible');
+}
+
+// Track mouse for tooltip positioning
+document.addEventListener('mousemove', function(e) {
+  if (tooltipEl && tooltipEl.classList.contains('visible')) {
+    tooltipEl.style.left = (e.clientX + 18) + 'px';
+    tooltipEl.style.top = (e.clientY - 40) + 'px';
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   TIMELINE TICKS
+   ═══════════════════════════════════════════════════════════ */
+function buildTimelineTicks() {
+  const container = document.getElementById('timeline-ticks');
+  const milestones = [1776, 1783, 1803, 1848, 1865, 1869, 1890, 1917, 1929, 1941, 1945, 1969, 1991, 2001, 2020, 2025];
+
+  let html = '';
+  TIMELINE_YEARS.forEach(y => {
+    const isMilestone = milestones.includes(y);
+    html += `<span class="timeline-tick${isMilestone ? ' milestone' : ''}" data-year="${y}" onclick="jumpToYear(${y})">${y}</span>`;
+  });
+  container.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UPDATE DISPLAY
+   ═══════════════════════════════════════════════════════════ */
+function getCurrentYear() {
+  return TIMELINE_YEARS[currentYearIndex];
+}
+
+function updateDisplay(year) {
+  const displayYear = getNearestTimelineYear(year);
+  // Find index
+  let idx = TIMELINE_YEARS.indexOf(displayYear);
+  if (idx < 0) idx = 0;
+  currentYearIndex = idx;
+
+  const cy = TIMELINE_YEARS[idx];
+
+  // Update era display
+  document.getElementById('era-year').textContent = cy;
+  document.getElementById('era-label').textContent = getEraLabel(cy);
+  document.getElementById('era-subtitle').textContent = getEraSubtitle(cy);
+
+  // Update header stats
+  const statesAdmitted = STATE_DATA.filter(s => s.admissionYear <= cy).length;
+  const pop = getClosestData(POPULATION_DATA, cy);
+  const area = getClosestData(AREA_DATA, cy);
+  const citiesFounded = CITY_DATA.filter(c => c.foundedYear <= cy).length;
+
+  document.getElementById('stat-states').textContent = statesAdmitted;
+  document.getElementById('stat-population').textContent = formatPop(pop);
+  document.getElementById('stat-cities').textContent = citiesFounded;
+  document.getElementById('stat-area').textContent = formatArea(area);
+
+  // Update timeline
+  const progress = ((cy - START_YEAR) / (END_YEAR - START_YEAR)) * 100;
+  document.getElementById('timeline-progress').style.width = progress + '%';
+  document.getElementById('timeline-thumb').style.left = progress + '%';
+
+  // Update ticks
+  document.querySelectorAll('.timeline-tick').forEach(tick => {
+    const tickYear = parseInt(tick.dataset.year);
+    tick.classList.toggle('active', tickYear === cy);
+  });
+
+  // Update state polygons
+  STATE_DATA.forEach(sd => {
+    const polygon = statePolygons[sd.name];
+    if (!polygon) return;
+    const isAdmitted = sd.admissionYear <= cy;
+    if (isAdmitted) {
+      const color = getStateColor(sd.admissionYear);
+      const isHighlighted = (currentHighlightedState && currentHighlightedState.stateData.name === sd.name);
+      polygon.setStyle({
+        fillColor: color,
+        fillOpacity: isHighlighted ? 0.5 : 0.35,
+        color: color,
+        weight: isHighlighted ? 2.5 : 1,
+        opacity: isHighlighted ? 1 : 0.65
+      });
+    } else {
+      polygon.setStyle({
+        fillOpacity: 0,
+        weight: 0,
+        opacity: 0
+      });
+    }
+  });
+
+  // Update city markers
+  cityMarkers.forEach(marker => {
+    const cd = marker.cityData;
+    const isFounded = cd.foundedYear <= cy;
+    if (isFounded) {
+      marker.setStyle({
+        radius: 4,
+        fillOpacity: 0.8,
+        opacity: 0.8
+      });
+    } else {
+      marker.setStyle({
+        radius: 0,
+        fillOpacity: 0,
+        opacity: 0
+      });
+    }
+  });
+
+  // Update territory overlays
+  updateTerritories(cy);
+
+  // Update side panel lists
+  updateSidePanel(cy);
+
+  // If highlighted state no longer admitted, clear it
+  if (currentHighlightedState) {
+    const stillAdmitted = currentHighlightedState.stateData.admissionYear <= cy;
+    if (!stillAdmitted) {
+      currentHighlightedState.setStyle({ weight: 0, opacity: 0, fillOpacity: 0 });
+      currentHighlightedState = null;
+    }
+  }
+}
+
+function updateTerritories(year) {
+  // Remove existing territory overlays
+  territoryOverlays.forEach(ol => map.removeLayer(ol));
+  territoryOverlays = [];
+
+  if (!showTerritories) return;
+
+  TERRITORY_DATA.forEach(t => {
+    if (t.year <= year && t.bounds) {
+      const rect = L.rectangle(t.bounds, {
+        color: t.color,
+        weight: 1.5,
+        fillColor: t.color,
+        fillOpacity: 0.08,
+        dashArray: '6 4',
+        className: 'territory-pulse'
+      });
+      rect.bindTooltip(`<b>${t.name}</b><br><small>${t.year} — ${t.description}</small>`, {
+        direction: 'center',
+        className: 'territory-tooltip'
+      });
+      rect.addTo(map);
+      territoryOverlays.push(rect);
+    }
+  });
+}
+
+function updateSidePanel(year) {
+  // States list
+  let statesHtml = '';
+  const admittedStates = STATE_DATA.filter(s => s.admissionYear <= year)
+    .sort((a,b) => b.admissionYear - a.admissionYear);
+  const recentStates = admittedStates.slice(0, 15);
+
+  recentStates.forEach(s => {
+    statesHtml += `
+      <div class="state-item">
+        <span class="state-dot" style="background:${getStateColor(s.admissionYear)}"></span>
+        <span class="state-name">${s.name}</span>
+        <span class="state-year">${s.admissionYear}</span>
+      </div>`;
+  });
+
+  if (admittedStates.length > 15) {
+    statesHtml += `<div style="color:var(--text-muted);font-size:0.68rem;padding-top:0.3rem;">+ ${admittedStates.length - 15} more states</div>`;
+  }
+  if (admittedStates.length === 0) {
+    statesHtml = '<div style="color:var(--text-muted);font-size:0.72rem;">No states yet — the Union forms in 1787</div>';
+  }
+  document.getElementById('states-list').innerHTML = statesHtml;
+
+  // Cities list
+  let citiesHtml = '';
+  const foundedCities = CITY_DATA.filter(c => c.foundedYear <= year)
+    .sort((a,b) => b.foundedYear - a.foundedYear);
+  const recentCities = foundedCities.slice(0, 10);
+
+  recentCities.forEach(c => {
+    citiesHtml += `
+      <div class="city-item">
+        <span class="city-marker"></span>
+        <span class="city-name">${c.name}, ${c.state}</span>
+        <span class="city-year">${c.foundedYear}</span>
+      </div>`;
+  });
+
+  if (foundedCities.length > 10) {
+    citiesHtml += `<div style="color:var(--text-muted);font-size:0.68rem;padding-top:0.3rem;">+ ${foundedCities.length - 10} more cities</div>`;
+  }
+  if (foundedCities.length === 0) {
+    citiesHtml = '<div style="color:var(--text-muted);font-size:0.72rem;">No major settlements founded yet</div>';
+  }
+  document.getElementById('cities-list').innerHTML = citiesHtml;
+
+  // Events list
+  let eventsHtml = '';
+  const relevantEvents = HISTORICAL_EVENTS.filter(e => {
+    const ey = e.year;
+    // Show events within ~15 years of current year
+    return ey <= year && ey >= year - 20;
+  }).sort((a,b) => b.year - a.year).slice(0, 6);
+
+  relevantEvents.forEach(e => {
+    eventsHtml += `
+      <div class="event-item">
+        <span class="event-year-badge">${e.year}</span>
+        <div class="event-title">${e.title}</div>
+        <div class="event-desc">${e.desc}</div>
+      </div>`;
+  });
+
+  if (relevantEvents.length === 0) {
+    eventsHtml = '<div style="color:var(--text-muted);font-size:0.72rem;">No notable events in this period</div>';
+  }
+  document.getElementById('events-list').innerHTML = eventsHtml;
+}
+
+function highlightStateInPanel(stateData) {
+  // Update the states list to highlight this state
+  updateSidePanel(getCurrentYear());
+  // Could add a specific highlight — for now, the state is visible in the list
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAYBACK CONTROLS
+   ═══════════════════════════════════════════════════════════ */
+function togglePlay() {
+  if (isPlaying) {
+    pauseAnimation();
+  } else {
+    playAnimation();
+  }
+}
+
+function playAnimation() {
+  if (isPlaying) return;
+  isPlaying = true;
+  document.getElementById('btn-play').textContent = '⏸';
+  document.getElementById('btn-play').classList.add('active');
+  advanceAnimation();
+}
+
+function pauseAnimation() {
+  isPlaying = false;
+  document.getElementById('btn-play').textContent = '▶';
+  document.getElementById('btn-play').classList.remove('active');
+  if (playInterval) { clearTimeout(playInterval); playInterval = null; }
+}
+
+function advanceAnimation() {
+  if (!isPlaying) return;
+  if (currentYearIndex < TIMELINE_YEARS.length - 1) {
+    currentYearIndex++;
+    updateDisplay(TIMELINE_YEARS[currentYearIndex]);
+    playInterval = setTimeout(advanceAnimation, animSpeed);
+  } else {
+    pauseAnimation();
+  }
+}
+
+function stepForward() {
+  pauseAnimation();
+  if (currentYearIndex < TIMELINE_YEARS.length - 1) {
+    currentYearIndex++;
+    updateDisplay(TIMELINE_YEARS[currentYearIndex]);
+  }
+}
+
+function stepBackward() {
+  pauseAnimation();
+  if (currentYearIndex > 0) {
+    currentYearIndex--;
+    updateDisplay(TIMELINE_YEARS[currentYearIndex]);
+  }
+}
+
+function goToStart() {
+  pauseAnimation();
+  currentYearIndex = 0;
+  updateDisplay(TIMELINE_YEARS[0]);
+  // Reset map view
+  map.setView([39.8, -96.5], 4.2);
+}
+
+function goToEnd() {
+  pauseAnimation();
+  currentYearIndex = TIMELINE_YEARS.length - 1;
+  updateDisplay(TIMELINE_YEARS[TIMELINE_YEARS.length - 1]);
+}
+
+function jumpToYear(year) {
+  pauseAnimation();
+  const nearest = getNearestTimelineYear(year);
+  const idx = TIMELINE_YEARS.indexOf(nearest);
+  if (idx >= 0) {
+    currentYearIndex = idx;
+    updateDisplay(nearest);
+  }
+}
+
+function setSpeed(ms) {
+  animSpeed = ms;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.speed-btn[data-speed="${ms}"]`);
+  if (btn) btn.classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UI CONTROLS
+   ═══════════════════════════════════════════════════════════ */
+function toggleTerritories() {
+  showTerritories = !showTerritories;
+  const btn = document.getElementById('btn-territories');
+  if (showTerritories) {
+    btn.classList.add('active');
+    btn.textContent = '🗺 Territories (on)';
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '🗺 Territories';
+  }
+  updateDisplay(getCurrentYear());
+}
+
+function resetView() {
+  map.setView([39.8, -96.5], 4.2);
+  if (currentHighlightedState) {
+    const prevData = currentHighlightedState.stateData;
+    const prevAdmitted = prevData.admissionYear <= getCurrentYear();
+    currentHighlightedState.setStyle({
+      weight: prevAdmitted ? 1 : 0,
+      opacity: prevAdmitted ? 0.65 : 0,
+      fillOpacity: prevAdmitted ? 0.35 : 0
+    });
+    currentHighlightedState = null;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TIMELINE TRACK INTERACTION
+   ═══════════════════════════════════════════════════════════ */
+(function() {
+  const track = document.getElementById('timeline-track');
+  const thumb = document.getElementById('timeline-thumb');
+  let dragging = false;
+
+  function getYearFromEvent(e) {
+    const rect = track.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const year = Math.round(START_YEAR + ratio * (END_YEAR - START_YEAR));
+    return getNearestTimelineYear(year);
+  }
+
+  track.addEventListener('mousedown', function(e) {
+    dragging = true;
+    pauseAnimation();
+    const year = getYearFromEvent(e);
+    jumpToYear(year);
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const year = getYearFromEvent(e);
+    jumpToYear(year);
+  });
+
+  document.addEventListener('mouseup', function() {
+    dragging = false;
+  });
+
+  // Touch support
+  track.addEventListener('touchstart', function(e) {
+    dragging = true;
+    pauseAnimation();
+    const year = getYearFromEvent(e);
+    jumpToYear(year);
+  });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    const year = getYearFromEvent(e);
+    jumpToYear(year);
+  });
+
+  document.addEventListener('touchend', function() {
+    dragging = false;
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ═══════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', function(e) {
+  switch(e.key) {
+    case 'ArrowRight': stepForward(); e.preventDefault(); break;
+    case 'ArrowLeft': stepBackward(); e.preventDefault(); break;
+    case ' ': togglePlay(); e.preventDefault(); break;
+    case 'Home': goToStart(); e.preventDefault(); break;
+    case 'End': goToEnd(); e.preventDefault(); break;
+    case 't': toggleTerritories(); e.preventDefault(); break;
+    case 'r': resetView(); e.preventDefault(); break;
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   STARTUP
+   ═══════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', function() {
+  initMap();
+});
+
+console.log('%c🇺🇸 United States Historical Development Simulation %c· H Heuristics %c· 2025',
+  'font-size:16px;color:#d4a840;', 'color:#b8a890;', 'color:#7a6e60;');
+console.log('%c1776 → 2025 %c| %c10-year increments %c| %cInteractive Map Dashboard',
+  'color:#e8c860;', '', 'color:#b8a890;', '', 'color:#7a6e60;');
+</script>
+</body>
+</html>
